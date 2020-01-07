@@ -3,6 +3,8 @@ import s3 = require('@aws-cdk/aws-s3')
 import lambda = require('@aws-cdk/aws-lambda')
 import lamdaEvents = require('@aws-cdk/aws-lambda-event-sources')
 import apigateway = require('@aws-cdk/aws-apigateway')
+import iam = require('@aws-cdk/aws-iam');
+
 import path = require('path')
 
 export class S3LambdaCdkStack extends cdk.Stack {
@@ -20,11 +22,16 @@ export class S3LambdaCdkStack extends cdk.Stack {
     const getSignedS3URL = new lambda.Function(this, 'getSignedS3URL', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, 'lambdas', 'generatePreSignedLink'))
+      code: lambda.Code.fromAsset(path.join(__dirname, 'lambdas', 'generatePreSignedLink')),
+      environment: {
+        targetS3Bucket: productCSVBucket.bucketName
+      }
     })
 
+    productCSVBucket.grantReadWrite(getSignedS3URL)
+
     new apigateway.LambdaRestApi(this, 'product', {
-      handler: getSignedS3URL
+      handler: getSignedS3URL,
     })
 
     productCSVParser.addEventSource(new lamdaEvents.S3EventSource(productCSVBucket, { events: [s3.EventType.OBJECT_CREATED_PUT] }))
