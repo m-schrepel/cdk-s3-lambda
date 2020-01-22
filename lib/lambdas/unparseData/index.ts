@@ -59,6 +59,10 @@ exports.handler = async () => {
         console.log('result', result)
     })
 
-    return s3Result
+    return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: s3Result
+    }
 
 }
