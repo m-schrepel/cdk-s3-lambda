@@ -21,6 +21,16 @@ export class S3LambdaCdkStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, 'lambdas', 'parseCSVIntoSqsTopics'))
     })
 
+    const unparse = new lambda.Function(this, 'unparseData', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      memorySize: 2048,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, 'lambdas', 'unparseData')),
+      environment: {
+        targetS3Bucket: productCSVBucket.bucketName
+      }
+    })
+
     const getSignedS3URL = new lambda.Function(this, 'getSignedS3URL', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'index.handler',
@@ -31,6 +41,7 @@ export class S3LambdaCdkStack extends cdk.Stack {
     })
 
     productCSVBucket.grantReadWrite(getSignedS3URL)
+    productCSVBucket.grantReadWrite(unparse)
     productCSVBucket.grantRead(productCSVParser)
 
     new apigateway.LambdaRestApi(this, 'product', {
