@@ -1,7 +1,9 @@
 import Papa = require('papaparse')
 import AWS = require('aws-sdk')
 
-const s3 = new AWS.S3()
+const s3 = new AWS.S3({
+    signatureVersion: 'v4',
+})
 
 const headerRow = [
     'brand',
@@ -53,16 +55,20 @@ const product = [
 exports.handler = async () => {
 
     const result: string = Papa.unparse([headerRow, product])
+    console.log('parse result', result)
+    console.log('Executing...')
 
-    const s3Result = s3.putObject({ Bucket: process.env.targetS3Bucket || 'product', Key: 'test-unparse.csv', ContentType: 'text/csv', Body: result }, (error, result) => {
-        console.log('error', error)
-        console.log('result', result)
-    })
-
-    return {
-        statusCode: 200,
-        headers: { "Content-Type": "application/json" },
-        body: s3Result
+    const params = { 
+        Bucket: 's3lambdacdkstack-productcsvupload18421a24-15jc9rq10joad', 
+        Key: 'test-unparse.csv', 
+        Body: result,
+        ContentType: 'text/csv'
     }
 
+    const s3Result = await s3.putObject(params).promise()
+    console.log(s3Result)
+    return {
+        statusCode: s3Result && s3Result.ETag ? 200 : 500,
+        body: s3Result.ETag || s3Result
+    }
 }
